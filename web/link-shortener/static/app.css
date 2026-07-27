@@ -272,12 +272,14 @@ select:focus {
   min-width: 0;
   font-family: ui-monospace, "IBM Plex Mono", monospace;
   font-size: 0.9rem;
+  border-radius: 10px;
+  padding: 0 .5rem;
 }
 
 .copy {
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 0 1rem;
+  padding: 0.4rem 0.7rem;
   background: #fff;
   font: inherit;
   font-weight: 600;
