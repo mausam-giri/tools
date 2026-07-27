@@ -8,7 +8,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/mausam-giri/tools/internal/assets"
+	"github.com/mausam-giri/tools/internal/shortener"
 	"github.com/mausam-giri/tools/internal/tools"
 )
 
@@ -16,6 +18,8 @@ import (
 var webFS embed.FS
 
 func main() {
+	_ = godotenv.Load() // loads .env when present (local); Cloud/K8s use real env vars
+
 	static, err := fs.Sub(webFS, "web")
 	if err != nil {
 		log.Fatalf("embed web: %v", err)
@@ -26,12 +30,24 @@ func main() {
 		log.Fatalf("assets handler: %v", err)
 	}
 
+	store, err := shortener.Open(os.Getenv("TURSO_DB_URL"), os.Getenv("TURSO_TOKEN"))
+	if err != nil {
+		log.Fatalf("shortener db (turso): %v", err)
+	}
+	defer store.Close()
+	shortener.StartCleanup(store, time.Minute)
+	log.Printf("shortener db → turso")
+
 	mux := http.NewServeMux()
 
 	// Path-based tool routes are folder-backed under web/<tool-id>/
-	// Landing: GET /  → web/index.html
-	// Tool:    GET /markdown-to-pdf/ → web/markdown-to-pdf/index.html
 	mux.Handle("/", web)
+
+	short := &shortener.Handler{
+		Store:  store,
+		Public: os.Getenv("PUBLIC_BASE_URL"), // e.g. https://tools.mausamgiri.in
+	}
+	short.Mount(mux)
 
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

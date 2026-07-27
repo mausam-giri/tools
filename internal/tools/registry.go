@@ -24,6 +24,15 @@ var All = []Tool{
 		Status:      "live",
 		Accent:      "#0d7a6f",
 	},
+	{
+		ID:          "link-shortener",
+		Path:        "/link-shortener/",
+		Name:        "Link Shortener",
+		Tagline:     "Short links that expire",
+		Description: "Create fast short URLs with selectable lifetime — from 15 minutes to 30 days. Default 3 days.",
+		Status:      "live",
+		Accent:      "#1a6b8a",
+	},
 }
 
 // ByID returns a tool by id, or false if missing.

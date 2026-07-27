@@ -9,7 +9,7 @@ RUN go mod download && go mod verify
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -o main main.go
+    go build -o main .
 
 
 # Runtime Stage
@@ -17,15 +17,17 @@ FROM alpine:latest
 
 WORKDIR /app
 
+RUN apk add --no-cache ca-certificates
+
 COPY --from=builder /app/main .
+
+# Provide at runtime:
+#   TURSO_DB_URL  e.g. libsql://….turso.io
+#   TURSO_TOKEN   Turso auth token
+# Optional:
+#   PUBLIC_BASE_URL  e.g. https://tools.mausamgiri.in
+#   PORT
 
 EXPOSE 8080
 
 CMD ["./main"]
-
-
-# Runtime Stage
-# FROM scratch
-# COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/   # For HTTPS ( CA Certificate )
-# COPY --from=builder /app/main /main
-# ENTRYPOINT ["/main"]
