@@ -11,15 +11,28 @@ Welcome to a **fast**, client-side Markdown → PDF workflow.
 - Live HTML preview as you type
 - Custom CSS scoped to the document only
 - **Page Break View** dynamically calculates exact PDF break points in real time!
+- **Mermaid Diagrams** support for flowcharts, sequence diagrams, and mind maps!
 
 ### Checklist
 - [x] Headings, lists, and tables
-- [x] Code fences
+- [x] Code fences & Mermaid diagrams
 - [x] Real-time page break calculation
+
+## Workflow Architecture
+
+\`\`\`mermaid
+graph TD
+    A[Markdown Source] -->|marked.js| B[HTML Preview]
+    A -->|Mermaid.js| C[Rendered Diagrams]
+    B --> D[Page Break Simulation]
+    C --> D
+    D -->|html2pdf.js| E[Exported PDF Document]
+\`\`\`
 
 | Feature | Status |
 | --- | --- |
 | Preview | Live Normal & Page Break |
+| Diagrams | Native Mermaid Support |
 | CSS | Editable & Scoped |
 | PDF | Pixel-Perfect Export |
 
@@ -158,10 +171,30 @@ blockquote {
   let currentPageSize = "a4";
   documentName.value = `Untitled-1`;
 
+  function escapeHtml(str) {
+    return (str || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   marked.setOptions({
     gfm: true,
     breaks: false,
   });
+
+  const renderer = new marked.Renderer();
+  const originalCodeRenderer = renderer.code.bind(renderer);
+  renderer.code = function ({ text, lang, escaped }) {
+    if (lang === "mermaid") {
+      const rawText = (text || "").trim();
+      return `<div class="mermaid-container"><div class="mermaid" data-diagram="${encodeURIComponent(rawText)}">${escapeHtml(rawText)}</div></div>`;
+    }
+    return originalCodeRenderer({ text, lang, escaped });
+  };
+  marked.use({ renderer });
 
   function getCSS() {
     return cssEditor ? cssEditor.getValue() : cssInput.value;
@@ -343,7 +376,7 @@ blockquote {
     const dirty = marked.parse(src || "");
     return DOMPurify.sanitize(dirty, {
       USE_PROFILES: { html: true },
-      ADD_ATTR: ["data-pagebreak", "data-break"],
+      ADD_ATTR: ["data-pagebreak", "data-break", "data-diagram"],
     });
   }
 
@@ -411,8 +444,61 @@ blockquote {
     return marker;
   }
 
+  if (window.mermaid) {
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: "default",
+        securityLevel: "loose",
+        fontFamily: "Barlow, sans-serif",
+        flowchart: { htmlLabels: true, useMaxWidth: true },
+        sequence: { useMaxWidth: true },
+        gantt: { useMaxWidth: true },
+      });
+    } catch (err) {
+      console.error("Mermaid initialization failed:", err);
+    }
+  }
+
+  let mermaidCounter = 0;
+
+  async function renderMermaidDiagrams(container) {
+    if (!window.mermaid || !container) return;
+    const nodes = container.querySelectorAll(".mermaid");
+    if (!nodes.length) return;
+
+    const renderPromises = Array.from(nodes).map(async (node) => {
+      const rawDiagram = node.dataset.diagram
+        ? decodeURIComponent(node.dataset.diagram)
+        : node.textContent.trim();
+      if (!rawDiagram) return;
+
+      const id = `mermaid-render-${Date.now()}-${++mermaidCounter}`;
+      try {
+        const { svg } = await mermaid.render(id, rawDiagram);
+        node.innerHTML = svg;
+        node.classList.remove("mermaid-error");
+      } catch (err) {
+        console.warn("Mermaid diagram render error:", err);
+        const orphan = document.getElementById(id);
+        if (orphan) orphan.remove();
+
+        node.classList.add("mermaid-error");
+        node.innerHTML = `<div class="mermaid-error-msg">
+          <span class="material-symbols-outlined icon-inline">warning</span>
+          Invalid Mermaid syntax
+        </div>
+        <pre><code>${escapeHtml(rawDiagram)}</code></pre>`;
+      }
+    });
+
+    await Promise.all(renderPromises);
+  }
+
+  let currentPageBreakToken = 0;
+
   /** Real-time Automated Page Break Simulation */
-  function calculateAndRenderPageBreaks(html, userCss, pageSize, container) {
+  async function calculateAndRenderPageBreaks(html, userCss, pageSize, container, token) {
     if (!container) return;
     const metrics = getPageMetrics(pageSize);
 
@@ -435,6 +521,15 @@ blockquote {
     const measureStyle = document.createElement("style");
     measureStyle.textContent = scopeCSS(userCss, ["#pdf-measure-root"]);
     document.head.appendChild(measureStyle);
+
+    // Render Mermaid diagrams in probe first so measurements reflect exact rendered diagram height!
+    await renderMermaidDiagrams(probeBody);
+
+    if (token && token !== currentPageBreakToken) {
+      probe.remove();
+      measureStyle.remove();
+      return;
+    }
 
     const blocks = Array.from(probeBody.children);
     const sheets = [];
@@ -508,16 +603,22 @@ blockquote {
     }
   }
 
-  function updateNormalPreview() {
+  let currentPreviewToken = 0;
+
+  async function updateNormalPreview() {
+    const token = ++currentPreviewToken;
     const html = renderMarkdown(markdownInput.value);
     htmlPreview.innerHTML = html;
+    await renderMermaidDiagrams(htmlPreview);
+    if (token !== currentPreviewToken) return;
     previewStats.textContent = `${wordCount(markdownInput.value)} words`;
   }
 
-  function refreshPageBreakView() {
+  async function refreshPageBreakView() {
+    const token = ++currentPageBreakToken;
     const html = renderMarkdown(markdownInput.value);
     const css = getCSS();
-    calculateAndRenderPageBreaks(html, css, currentPageSize, pagebreakPreview);
+    await calculateAndRenderPageBreaks(html, css, currentPageSize, pagebreakPreview, token);
   }
 
   function updateStyles() {
@@ -675,6 +776,8 @@ blockquote {
     mount.appendChild(style);
     document.body.appendChild(mount);
 
+    await renderMermaidDiagrams(clone);
+
     const opt = {
       margin: [PDF_MARGIN_MM, PDF_MARGIN_MM, PDF_MARGIN_MM, PDF_MARGIN_MM],
       filename: documentName.value.trim(),
@@ -689,7 +792,7 @@ blockquote {
       pagebreak: {
         mode: ["css", "legacy"],
         after: '[data-pagebreak], [data-break="page"], .page-break',
-        avoid: ["img", "pre", "table", "blockquote"],
+        avoid: ["img", "pre", "table", "blockquote", ".mermaid-container", ".mermaid", "svg"],
       },
     };
 
@@ -851,6 +954,13 @@ blockquote {
         break;
       case "hr":
         insertBlock("---");
+        break;
+      case "mermaid":
+        insertBlock(
+          "```mermaid\ngraph TD\n    A[Start] --> B{Is it working?}\n    B -- Yes --> C[Great!]\n    B -- No --> D[Debug]\n```",
+          11,
+          58
+        );
         break;
       case "pagebreak":
         insertBlock('<div data-pagebreak></div>');
