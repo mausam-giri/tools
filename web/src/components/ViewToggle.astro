@@ -1,0 +1,67 @@
+---
+---
+<div class="view-toggle-group" role="radiogroup" aria-label="Preview view mode">
+  <button
+    type="button"
+    class="view-toggle-btn active"
+    data-view="normal"
+    role="radio"
+    aria-checked="true"
+    title="Normal continuous document view"
+  >
+    <span class="material-symbols-outlined icon-sm">article</span>
+    <span>Normal</span>
+  </button>
+  <button
+    type="button"
+    class="view-toggle-btn"
+    data-view="pagebreak"
+    role="radio"
+    aria-checked="false"
+    title="Real-time page break simulation matching PDF export"
+  >
+    <span class="material-symbols-outlined icon-sm">view_compact</span>
+    <span>Page Breaks</span>
+  </button>
+</div>
+
+<style>
+  .view-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    background: color-mix(in srgb, var(--surface, #ffffff) 80%, var(--bg-1, #f7fafc));
+    border: 1px solid var(--line, #c9d4e0);
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .view-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft, #5a6b7d);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .view-toggle-btn:hover {
+    color: var(--accent, #0d7a6f);
+    background: rgba(13, 122, 111, 0.08);
+  }
+
+  .view-toggle-btn.active {
+    background: var(--accent, #0d7a6f);
+    color: #ffffff;
+  }
+
+  .icon-sm {
+    font-size: 16px;
+  }
+</style>

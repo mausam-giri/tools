@@ -1,0 +1,42 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Mausam Giri Tools — Free Online Utilities">
+  <div class="page">
+    <header class="site-header">
+      <a class="logo" href="/" aria-label="Mausam Giri Tools home">
+        <span class="logo-mark" aria-hidden="true">MG</span>
+        <span class="logo-text">
+          <strong>Mausam Giri</strong>
+          <span>Tools</span>
+        </span>
+      </a>
+      <a class="site-link" href="https://mausamgiri.in/" rel="me noopener">mausamgiri.in</a>
+    </header>
+
+    <main>
+      <section class="hero">
+        <p class="hero-kicker">tools.mausamgiri.in</p>
+        <h1>Tools that stay out of the way</h1>
+        <p class="hero-lead">Small browser utilities — fast, free, no account required.</p>
+      </section>
+
+      <section class="tools" aria-labelledby="tools-heading">
+        <div class="tools-head">
+          <h2 id="tools-heading">Available tools</h2>
+          <p>Pick a tool to open it. New ones appear here as they ship.</p>
+        </div>
+        <div id="tools-grid" class="tools-grid" aria-live="polite">
+          <p class="tools-loading">Loading tools…</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>Built by <a href="https://mausamgiri.in/" rel="me">Mausam Giri</a></p>
+    </footer>
+  </div>
+
+  <script is:inline src="/static/home.js" defer></script>
+</Layout>

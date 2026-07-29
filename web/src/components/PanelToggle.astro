@@ -1,0 +1,88 @@
+---
+---
+<div class="panel-toggle-group" role="radiogroup" aria-label="Pane visibility mode">
+  <button
+    type="button"
+    class="panel-toggle-btn active"
+    data-mode="split"
+    role="radio"
+    aria-checked="true"
+    title="Split view (Editor + Preview)"
+  >
+    <span class="material-symbols-outlined icon-sm">splitscreen</span>
+    <span class="btn-label">Split</span>
+  </button>
+  <button
+    type="button"
+    class="btn btn-primary"
+    data-mode="editor"
+    role="radio"
+    aria-checked="false"
+    title="Editor only"
+  >
+    <span class="material-symbols-outlined icon-sm">edit_note</span>
+    <span class="btn-label">Editor</span>
+  </button>
+  <button
+    type="button"
+    class="panel-toggle-btn"
+    data-mode="preview"
+    role="radio"
+    aria-checked="false"
+    title="Preview only"
+  >
+    <span class="material-symbols-outlined icon-sm">visibility</span>
+    <span class="btn-label">Preview</span>
+  </button>
+</div>
+
+<style>
+  .panel-toggle-group {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-1, #f7fafc);
+    border: 1px solid var(--line, #c9d4e0);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+
+  .panel-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft, #5a6b7d);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .panel-toggle-btn:hover {
+    color: var(--accent, #0d7a6f);
+    background: rgba(13, 122, 111, 0.08);
+  }
+
+  .panel-toggle-btn.active {
+    background: var(--surface, #ffffff);
+    color: var(--accent-hover, #0a645b);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .icon-sm {
+    font-size: 18px;
+  }
+
+  @media (max-width: 640px) {
+    .btn-label {
+      display: none;
+    }
+    .panel-toggle-btn {
+      padding: 5px 6px;
+    }
+  }
+</style>

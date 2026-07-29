@@ -1,0 +1,40 @@
+---
+import PanelToggle from './PanelToggle.astro';
+---
+
+<header class="topbar">
+  <div class="brand">
+    <a class="brand-home" href="/" title="All tools">Tools</a>
+    <span class="mark" aria-hidden="true">MF</span>
+    <div class="brand-text">
+      <strong>MarkForge</strong>
+      <span>Markdown → HTML → PDF</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <!-- Unified Panel Toggle (Replaces separate Hide Preview / Hide Editor buttons) -->
+    <PanelToggle />
+
+    <label class="field-inline">
+      <span>Page</span>
+      <select id="page-size" title="PDF page size">
+        <option value="a4" selected>A4</option>
+        <option value="letter">Letter</option>
+      </select>
+    </label>
+
+    <button type="button" class="btn btn-primary" id="btn-export" title="Download as PDF">
+      <span class="material-symbols-outlined icon-btn">picture_as_pdf</span>
+      <span>Export PDF</span>
+    </button>
+  </div>
+</header>
+
+<style>
+  .icon-btn {
+    font-size: 18px;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+</style>

@@ -1,0 +1,349 @@
+---
+import Header from './Header.astro';
+import EditorPane from './EditorPane.astro';
+import PreviewPane from './PreviewPane.astro';
+---
+
+<div class="app">
+  <Header />
+
+  <main class="workspace" id="workspace">
+    <EditorPane />
+
+    <div class="splitter" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize panes"></div>
+
+    <PreviewPane />
+  </main>
+</div>
+
+<style id="user-styles"></style>
+
+<script>
+  import type { PageSize, PaneMode, ViewMode } from '../lib/types';
+  import { defaultCSS, defaultMarkdown, loadState, saveState } from '../lib/state';
+  import { renderMarkdown, countWords, applyMarkdownAction } from '../lib/markdown';
+  import { scopeCSS } from '../lib/css-scoper';
+  import { calculateAndRenderPageBreaks, getPageMetrics } from '../lib/page-break';
+  import { exportToPDF } from '../lib/pdf-export';
+
+  declare const CodeMirror: any;
+
+  const $ = (id: string) => document.getElementById(id);
+
+  const markdownInput = $('markdown-input') as HTMLTextAreaElement;
+  const cssInput = $('css-input') as HTMLTextAreaElement;
+  const cssEditorHost = $('css-editor-host') as HTMLElement;
+  const htmlPreview = $('html-preview') as HTMLElement;
+  const pagebreakPreview = $('pagebreak-preview') as HTMLElement;
+  const userStyles = $('user-styles') as HTMLStyleElement;
+  const previewStats = $('preview-stats') as HTMLElement;
+  const pageSizeSelect = $('page-size') as HTMLSelectElement;
+  const btnExport = $('btn-export') as HTMLButtonElement;
+  const workspace = $('workspace') as HTMLElement;
+  const mdToolbar = $('md-toolbar') as HTMLElement;
+
+  let cssEditor: any = null;
+  let currentPaneMode: PaneMode = 'split';
+  let currentViewMode: ViewMode = 'normal';
+  let currentPageSize: PageSize = 'a4';
+
+  function getCSS(): string {
+    return cssEditor ? cssEditor.getValue() : cssInput.value;
+  }
+
+  function setCSS(value: string): void {
+    if (cssEditor) cssEditor.setValue(value);
+    else cssInput.value = value;
+  }
+
+  function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+    let timer: any;
+    return ((...args: any[]) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    }) as T;
+  }
+
+  function applyPageSizeMetrics(): void {
+    currentPageSize = (pageSizeSelect.value as PageSize) || 'a4';
+    const metrics = getPageMetrics(currentPageSize);
+    document.documentElement.style.setProperty('--page-width', `${metrics.pageWidthMm}mm`);
+    document.documentElement.style.setProperty('--page-height', `${metrics.pageHeightMm}mm`);
+    htmlPreview.style.minHeight = `${metrics.pageHeightMm}mm`;
+
+    if (currentViewMode === 'pagebreak') {
+      refreshPageBreakView();
+    }
+  }
+
+  function updateStyles(): void {
+    const css = getCSS();
+    userStyles.textContent = scopeCSS(css, [
+      '#html-preview',
+      '.page-sheet-card',
+      '#pdf-export-root',
+      '#pdf-measure-root'
+    ]);
+
+    if (currentViewMode === 'pagebreak') {
+      refreshPageBreakView();
+    }
+  }
+
+  function updateNormalPreview(): void {
+    const html = renderMarkdown(markdownInput.value);
+    htmlPreview.innerHTML = html;
+    previewStats.textContent = `${countWords(markdownInput.value)} words`;
+  }
+
+  function refreshPageBreakView(): void {
+    if (!pagebreakPreview) return;
+    const html = renderMarkdown(markdownInput.value);
+    const css = getCSS();
+    calculateAndRenderPageBreaks(html, css, currentPageSize, pagebreakPreview);
+  }
+
+  function setPaneMode(mode: PaneMode): void {
+    currentPaneMode = mode;
+    workspace.classList.toggle('editor-hidden', mode === 'preview');
+    workspace.classList.toggle('preview-hidden', mode === 'editor');
+
+    document.querySelectorAll('.panel-toggle-btn').forEach((btn) => {
+      const b = btn as HTMLButtonElement;
+      const active = b.dataset.mode === mode;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-checked', String(active));
+    });
+
+    if (mode !== 'preview' && cssEditorHost.classList.contains('active') && cssEditor) {
+      requestAnimationFrame(() => cssEditor.refresh());
+    }
+
+    saveState({ paneMode: mode });
+  }
+
+  function setViewMode(mode: ViewMode): void {
+    currentViewMode = mode;
+
+    document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+      const b = btn as HTMLButtonElement;
+      const active = b.dataset.view === mode;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-checked', String(active));
+    });
+
+    if (mode === 'normal') {
+      htmlPreview.style.display = 'block';
+      pagebreakPreview.style.display = 'none';
+      updateNormalPreview();
+    } else {
+      htmlPreview.style.display = 'none';
+      pagebreakPreview.style.display = 'flex';
+      refreshPageBreakView();
+    }
+
+    saveState({ viewMode: mode });
+  }
+
+  function switchTab(name: string): void {
+    document.querySelectorAll('.tab').forEach((tab) => {
+      const t = tab as HTMLButtonElement;
+      const active = t.dataset.tab === name;
+      t.classList.toggle('active', active);
+      t.setAttribute('aria-selected', String(active));
+    });
+
+    markdownInput.classList.toggle('active', name === 'markdown');
+    cssEditorHost.classList.toggle('active', name === 'css');
+    if (mdToolbar) mdToolbar.hidden = name !== 'markdown';
+
+    if (name === 'css' && cssEditor) {
+      requestAnimationFrame(() => {
+        cssEditor.refresh();
+        cssEditor.focus();
+      });
+    } else if (name === 'markdown') {
+      markdownInput.focus();
+    }
+  }
+
+  function initCssEditor(initialCss: string): void {
+    cssInput.value = initialCss;
+    cssEditor = CodeMirror.fromTextArea(cssInput, {
+      mode: 'css',
+      lineNumbers: true,
+      lineWrapping: true,
+      tabSize: 2,
+      indentWithTabs: false,
+      autofocus: false,
+      autoCloseBrackets: true,
+      extraKeys: {
+        'Ctrl-Space': 'autocomplete',
+        'Cmd-Space': 'autocomplete',
+      },
+      hintOptions: {
+        completeSingle: false,
+      },
+    });
+
+    cssEditor.on('change', () => {
+      debouncedStyles();
+      debouncedPersist();
+    });
+  }
+
+  function initSplitter(): void {
+    const splitter = $('splitter');
+    const editor = document.querySelector('.editor-pane') as HTMLElement;
+    if (!splitter || !editor || !workspace) return;
+    let dragging = false;
+
+    const onMove = (clientX: number, clientY: number) => {
+      if (!dragging) return;
+      const rect = workspace.getBoundingClientRect();
+      const isVertical = window.matchMedia('(max-width: 860px)').matches;
+      if (isVertical) {
+        const y = clientY - rect.top;
+        const pct = Math.min(75, Math.max(25, (y / rect.height) * 100));
+        editor.style.flex = `0 0 ${pct}%`;
+      } else {
+        const x = clientX - rect.left;
+        const pct = Math.min(75, Math.max(25, (x / rect.width) * 100));
+        editor.style.flex = `0 0 ${pct}%`;
+      }
+    };
+
+    splitter.addEventListener('pointerdown', (e: PointerEvent) => {
+      dragging = true;
+      splitter.classList.add('active');
+      splitter.setPointerCapture(e.pointerId);
+    });
+
+    splitter.addEventListener('pointermove', (e: PointerEvent) => onMove(e.clientX, e.clientY));
+
+    splitter.addEventListener('pointerup', () => {
+      dragging = false;
+      splitter.classList.remove('active');
+    });
+  }
+
+  function resetDefaults(): void {
+    markdownInput.value = defaultMarkdown;
+    setCSS(defaultCSS);
+    pageSizeSelect.value = 'a4';
+
+    applyPageSizeMetrics();
+    updateNormalPreview();
+    updateStyles();
+    saveState({
+      markdown: defaultMarkdown,
+      css: defaultCSS,
+      pageSize: 'a4',
+      paneMode: 'split',
+      viewMode: 'normal'
+    });
+  }
+
+  const debouncedPersist = debounce(() => {
+    saveState({
+      markdown: markdownInput.value,
+      css: getCSS(),
+      pageSize: pageSizeSelect.value as PageSize,
+    });
+  }, 400);
+
+  const debouncedPreview = debounce(() => {
+    updateNormalPreview();
+    if (currentViewMode === 'pagebreak') {
+      refreshPageBreakView();
+    }
+  }, 100);
+
+  const debouncedStyles = debounce(() => {
+    updateStyles();
+  }, 100);
+
+  // Wire Events
+  document.querySelectorAll('.panel-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const mode = (e.currentTarget as HTMLElement).dataset.mode as PaneMode;
+      setPaneMode(mode);
+    });
+  });
+
+  document.querySelectorAll('.view-toggle-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      const view = (e.currentTarget as HTMLElement).dataset.view as ViewMode;
+      setViewMode(view);
+    });
+  });
+
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', (e) => {
+      const t = e.currentTarget as HTMLElement;
+      switchTab(t.dataset.tab || 'markdown');
+    });
+  });
+
+  if (mdToolbar) {
+    mdToolbar.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-md]') as HTMLElement;
+      if (!btn) return;
+      applyMarkdownAction(markdownInput, btn.dataset.md || '');
+    });
+  }
+
+  markdownInput.addEventListener('input', () => {
+    debouncedPreview();
+    debouncedPersist();
+  });
+
+  pageSizeSelect.addEventListener('change', () => {
+    applyPageSizeMetrics();
+    debouncedPersist();
+  });
+
+  btnExport.addEventListener('click', () => {
+    exportToPDF(markdownInput.value, getCSS(), currentPageSize, btnExport);
+  });
+
+  const resetBtn = $('btn-reset');
+  if (resetBtn) resetBtn.addEventListener('click', resetDefaults);
+
+  markdownInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'b') {
+        e.preventDefault();
+        applyMarkdownAction(markdownInput, 'bold');
+      } else if (k === 'i') {
+        e.preventDefault();
+        applyMarkdownAction(markdownInput, 'italic');
+      } else if (k === 'k') {
+        e.preventDefault();
+        applyMarkdownAction(markdownInput, 'link');
+      }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = markdownInput.selectionStart;
+      const end = markdownInput.selectionEnd;
+      markdownInput.value = `${markdownInput.value.slice(0, start)}  ${markdownInput.value.slice(end)}`;
+      markdownInput.selectionStart = markdownInput.selectionEnd = start + 2;
+      markdownInput.dispatchEvent(new Event('input'));
+    }
+  });
+
+  // Boot Application
+  const saved = loadState();
+  markdownInput.value = saved.markdown ?? defaultMarkdown;
+  pageSizeSelect.value = saved.pageSize ?? 'a4';
+  initCssEditor(saved.css ?? defaultCSS);
+
+  applyPageSizeMetrics();
+  updateNormalPreview();
+  updateStyles();
+  initSplitter();
+
+  setPaneMode(saved.paneMode ?? 'split');
+  setViewMode(saved.viewMode ?? 'normal');
+</script>

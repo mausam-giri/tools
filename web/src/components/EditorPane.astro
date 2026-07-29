@@ -1,0 +1,48 @@
+---
+import MarkdownToolbar from './MarkdownToolbar.astro';
+---
+
+<section class="pane editor-pane" aria-label="Editors">
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab active" role="tab" aria-selected="true" data-tab="markdown">
+      <span class="material-symbols-outlined icon-tab">edit</span>
+      <span>Markdown</span>
+    </button>
+    <button type="button" class="tab" role="tab" aria-selected="false" data-tab="css">
+      <span class="material-symbols-outlined icon-tab">css</span>
+      <span>Custom CSS</span>
+    </button>
+    <div class="tabs-spacer"></div>
+    <button type="button" class="btn-text" id="btn-reset" title="Restore sample content">
+      <span class="material-symbols-outlined icon-tab">restart_alt</span>
+      <span>Reset</span>
+    </button>
+  </div>
+
+  <MarkdownToolbar />
+
+  <textarea
+    id="markdown-input"
+    class="code-area active"
+    spellcheck="false"
+    aria-label="Markdown source"
+    placeholder="Write markdown…"
+  ></textarea>
+
+  <div id="css-editor-host" class="code-area css-editor-host">
+    <textarea
+      id="css-input"
+      spellcheck="false"
+      aria-label="Custom CSS"
+      placeholder="Customize document styles…"
+    ></textarea>
+  </div>
+</section>
+
+<style>
+  .icon-tab {
+    font-size: 16px;
+    vertical-align: text-bottom;
+    margin-right: 2px;
+  }
+</style>

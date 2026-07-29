@@ -1,0 +1,80 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Link Shortener — Mausam Giri Tools">
+  <div class="page">
+    <header class="top">
+      <a class="back" href="/">Tools</a>
+      <div class="brand">
+        <span class="mark" aria-hidden="true">LS</span>
+        <div>
+          <strong>Link Shortener</strong>
+          <span>Simple · Fast · Auto-expires</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="card">
+      <h1>Shorten a link</h1>
+      <p class="lead">Paste a URL, pick how long it should live, and copy the short link. Default life is <strong>3 days</strong>. No login — this browser can keep up to <strong>10</strong> active links.</p>
+
+      <form id="form" autocomplete="off">
+        <label class="field">
+          <span>URL to shorten</span>
+          <input id="url" name="url" type="url" inputmode="url" placeholder="https://example.com/very/long/path" required />
+        </label>
+
+        <fieldset class="ttl">
+          <legend>Link life</legend>
+          <label class="field ttl-select-field">
+            <span class="sr-only">Duration</span>
+            <select id="preset" name="preset" aria-label="Link life">
+              <option value="15m">15 min</option>
+              <option value="30m">30 min</option>
+              <option value="1h">1 hr</option>
+              <option value="3h">3 hr</option>
+              <option value="12h">12 hr</option>
+              <option value="1d">1 day</option>
+              <option value="3d" selected>3 days</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+
+          <div id="custom-ttl" class="custom-ttl" hidden>
+            <label>Days <input id="days" type="number" min="0" max="30" value="0" /></label>
+            <label>Hours <input id="hours" type="number" min="0" max="23" value="0" /></label>
+            <label>Min <input id="mins" type="number" min="0" max="59" value="15" /></label>
+            <p class="hint">Custom range: 1 minute – 3 days</p>
+          </div>
+        </fieldset>
+
+        <button class="submit" type="submit" id="submit">Create short link</button>
+        <p id="error" class="error" role="alert" hidden></p>
+      </form>
+
+      <section id="result" class="result" hidden>
+        <h2>Your short link</h2>
+        <div class="result-row">
+          <input id="short-url" type="text" readonly />
+          <button type="button" id="copy" class="copy">Copy</button>
+        </div>
+        <p id="meta" class="meta"></p>
+        <a id="open" class="open" href="#" target="_blank" rel="noopener">Open short link ↗</a>
+      </section>
+    </main>
+
+    <section class="card saved" aria-labelledby="saved-heading">
+      <div class="saved-head">
+        <div>
+          <h2 id="saved-heading">Your saved links</h2>
+          <p class="saved-sub">Tied to this browser · <span id="quota">0 / 10</span> active</p>
+        </div>
+        <button type="button" class="ghost" id="refresh-saved">Refresh</button>
+      </div>
+      <ul id="saved-list" class="saved-list"></ul>
+      <p id="saved-empty" class="saved-empty">No active links yet. Create one above — it will show up here.</p>
+    </section>
+  </div>
+  <script is:inline src="/link-shortener/static/app.js"></script>
+</Layout>

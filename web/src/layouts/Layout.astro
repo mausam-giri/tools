@@ -1,0 +1,57 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "MarkForge — Free Markdown to PDF Converter | Mausam Giri Tools",
+  description = "Convert Markdown to HTML and PDF in your browser. Live preview, custom CSS, real-time page-break view, and instant PDF export."
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Primary SEO -->
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="keywords" content="markdown to pdf, markdown to html, md to pdf, pdf converter, custom css markdown, live markdown preview, export pdf, MarkForge, Mausam Giri, free online tool" />
+  <meta name="author" content="Mausam Giri" />
+  <meta name="robots" content="index, follow" />
+  <meta name="theme-color" content="#0d7a6f" />
+
+  <!-- Canonical & Icons -->
+  <link rel="canonical" href="https://tools.mausamgiri.in/markdown-to-pdf/" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
+  <!-- Google Fonts & Google Icons (Material Symbols Outlined) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fira+Code:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- External Library CDNs -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/github-markdown-css@5.8.1/github-markdown-light.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/lib/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.min.css" />
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="/markdown-to-pdf/static/app.css" />
+
+  <script is:inline src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+  <script is:inline src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/lib/codemirror.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/mode/css/css.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/show-hint.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/hint/css-hint.min.js"></script>
+  <script is:inline src="https://cdn.jsdelivr.net/npm/codemirror@5.65.18/addon/edit/closebrackets.min.js"></script>
+</head>
+<body>
+  <slot />
+</body>
+</html>
